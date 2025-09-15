@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
-const Dashboard = ({ onNavigate, studentData }) => {
+const Dashboard = ({ studentData, onLogout }) => {
+  const navigate = useNavigate();
   const [backendStatus, setBackendStatus] = useState('Connecting...');
   const [showNotification, setShowNotification] = useState(false);
 
@@ -18,7 +20,7 @@ const Dashboard = ({ onNavigate, studentData }) => {
   }, []);
 
   const handleLogout = () => {
-    onNavigate('home');
+    onLogout();
   };
 
   return (
@@ -53,8 +55,18 @@ const Dashboard = ({ onNavigate, studentData }) => {
       
       <div className="container mx-auto p-6">
         <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-2xl font-bold mb-4">Welcome, {studentData?.name || 'Student'}!</h2>
-          <p className="text-gray-600">Student ID: {studentData?.studentId}</p>
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-2xl font-bold mb-4">Welcome, {studentData?.name || 'Student'}!</h2>
+              <p className="text-gray-600">Student ID: {studentData?.studentId}</p>
+            </div>
+            <button 
+              onClick={() => navigate('/personal-achievements')}
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
+            >
+              Personal Achievements
+            </button>
+          </div>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -68,9 +80,12 @@ const Dashboard = ({ onNavigate, studentData }) => {
             <p className="text-gray-600">Track your extracurricular activities</p>
           </div>
           
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold mb-2">Profile</h3>
-            <p className="text-gray-600">Manage your profile information</p>
+          <div 
+            className="bg-white rounded-lg shadow p-6 cursor-pointer hover:bg-gray-50"
+            onClick={() => navigate('/personal-achievements')}
+          >
+            <h3 className="text-lg font-semibold mb-2">Personal Achievements</h3>
+            <p className="text-gray-600">Manage your certificates and achievements</p>
           </div>
         </div>
       </div>

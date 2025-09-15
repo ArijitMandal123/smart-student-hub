@@ -1,50 +1,93 @@
-import { useState, useEffect } from 'react'
-import LandingPage from './components/LandingPage'
-import StudentLogin from './components/StudentLogin'
-import StudentRegister from './components/StudentRegister'
-import Dashboard from './components/Dashboard'
-import api from './services/api'
+import { useState, useEffect } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import LandingPage from "./components/LandingPage";
+import StudentLogin from "./components/StudentLogin";
+import StudentRegister from "./components/StudentRegister";
+import Dashboard from "./components/Dashboard";
+import PersonalAchievements from "./components/PersonalAchievements";
+import api from "./services/api";
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('home')
-  const [backendStatus, setBackendStatus] = useState('Connecting...')
-  const [studentData, setStudentData] = useState(null)
+  const [studentData, setStudentData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const testConnection = async () => {
-      try {
-        const response = await api.get('/api/test')
-        setBackendStatus(response.data.message)
-      } catch (error) {
-        setBackendStatus('Backend connection failed')
-      }
+    const savedStudentData = localStorage.getItem("studentData");
+    if (savedStudentData) {
+      setStudentData(JSON.parse(savedStudentData));
     }
-    testConnection()
-  }, [])
+    setIsLoading(false);
+  }, []);
 
   const handleLogin = (data) => {
-    setStudentData(data)
-    setCurrentPage('dashboard')
-  }
+    setStudentData(data);
+    localStorage.setItem("studentData", JSON.stringify(data));
+  };
 
-  const renderPage = () => {
-    switch(currentPage) {
-      case 'student-login':
-        return <StudentLogin onNavigate={setCurrentPage} onLogin={handleLogin} />
-      case 'student-register':
-        return <StudentRegister onNavigate={setCurrentPage} onRegister={handleLogin} />
-      case 'dashboard':
-        return <Dashboard onNavigate={setCurrentPage} studentData={studentData} />
-      default:
-        return <LandingPage onNavigate={setCurrentPage} />
-    }
+  const handleLogout = () => {
+    setStudentData(null);
+    localStorage.removeItem("studentData");
+  };
+
+  if (isLoading) {
+    return <div>Loading...</div>;
   }
 
   return (
-    <div>
-      {renderPage()}
-    </div>
-  )
+    <Router>
+      <Routes>
+        <Route
+          path="/"
+          element={studentData ? <Navigate to="/dashboard" /> : <LandingPage />}
+        />
+        <Route
+          path="/login"
+          element={
+            studentData ? (
+              <Navigate to="/dashboard" />
+            ) : (
+              <StudentLogin onLogin={handleLogin} />
+            )
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            studentData ? (
+              <Navigate to="/dashboard" />
+            ) : (
+              <StudentRegister onRegister={handleLogin} />
+            )
+          }
+        />
+        <Route
+          path="/dashboard"
+          element={
+            studentData ? (
+              <Dashboard studentData={studentData} onLogout={handleLogout} />
+            ) : (
+              <Navigate to="/" />
+            )
+          }
+        />
+        <Route
+          path="/personal-achievements"
+          element={
+            studentData ? (
+              <PersonalAchievements studentData={studentData} />
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        />
+      </Routes>
+    </Router>
+  );
 }
 
-export default App
+export default App;

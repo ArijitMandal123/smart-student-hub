@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
-const StudentRegister = ({ onNavigate, onRegister }) => {
+const StudentRegister = ({ onRegister }) => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -36,6 +38,7 @@ const StudentRegister = ({ onNavigate, onRegister }) => {
       const response = await api.post('/api/register', formData);
       setMessage(`Success: ${response.data.message}. Student ID: ${response.data.studentId}`);
       onRegister({ name: formData.name, studentId: response.data.studentId });
+      navigate('/dashboard');
     } catch (error) {
       console.error('Registration error:', error);
       const errorMsg = error.response?.data?.error || error.message || 'Registration failed';
@@ -139,7 +142,7 @@ const StudentRegister = ({ onNavigate, onRegister }) => {
       
       <div className="mt-6 text-center">
         <button
-          onClick={() => onNavigate('student-login')}
+          onClick={() => navigate('/login')}
           className="text-blue-600 hover:text-blue-800 font-medium"
         >
           Already have an account? Login here
@@ -148,7 +151,7 @@ const StudentRegister = ({ onNavigate, onRegister }) => {
       
       <div className="mt-4 text-center">
         <button 
-          onClick={() => onNavigate('home')}
+          onClick={() => navigate('/')}
           className="text-gray-600 hover:text-gray-800 text-sm"
         >
           ← Back to Home

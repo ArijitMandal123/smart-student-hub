@@ -1,6 +1,8 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
-const LandingPage = ({ onNavigate }) => {
+const LandingPage = () => {
+  const navigate = useNavigate();
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Navigation */}
@@ -28,7 +30,7 @@ const LandingPage = ({ onNavigate }) => {
             {/* Login Buttons */}
             <div className="flex items-center space-x-2">
               <button 
-                onClick={() => onNavigate('student-login')}
+                onClick={() => navigate('/login')}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-sm font-medium transition duration-300"
               >
                 Student
@@ -58,7 +60,7 @@ const LandingPage = ({ onNavigate }) => {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <div className="flex gap-4 justify-center">
                 <button 
-                  onClick={() => onNavigate('student-login')}
+                  onClick={() => navigate('/login')}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg text-lg font-medium transition duration-300 shadow-lg"
                 >
                   Student Login

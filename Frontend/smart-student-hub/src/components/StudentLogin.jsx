@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
-const StudentLogin = ({ onNavigate, onLogin }) => {
+const StudentLogin = ({ onLogin }) => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -18,6 +20,7 @@ const StudentLogin = ({ onNavigate, onLogin }) => {
       const response = await api.post('/api/login', formData);
       setMessage(`Success: ${response.data.message}`);
       onLogin(response.data);
+      navigate('/dashboard');
     } catch (error) {
       setMessage(`Error: ${error.response?.data?.error || 'Login failed'}`);
     }
@@ -70,7 +73,7 @@ const StudentLogin = ({ onNavigate, onLogin }) => {
 
         <div className="mt-6 text-center">
           <button
-            onClick={() => onNavigate('student-register')}
+            onClick={() => navigate('/register')}
             className="text-blue-600 hover:text-blue-800 font-medium"
           >
             Don't have an account? Register here
@@ -79,7 +82,7 @@ const StudentLogin = ({ onNavigate, onLogin }) => {
 
         <div className="mt-4 text-center">
           <button 
-            onClick={() => onNavigate('home')}
+            onClick={() => navigate('/')}
             className="text-gray-600 hover:text-gray-800 text-sm"
           >
             ← Back to Home
