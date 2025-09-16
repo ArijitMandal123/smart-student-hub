@@ -38,6 +38,28 @@ const personalCertificateSchema = new mongoose.Schema({
   timestamps: true
 });
 
+const projectSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: true
+  },
+  description: {
+    type: String,
+    required: true
+  },
+  githubLink: {
+    type: String,
+    required: true
+  },
+  deployLink: {
+    type: String
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
 const studentSchema = new mongoose.Schema({
   studentId: {
     type: String,
@@ -77,7 +99,41 @@ const studentSchema = new mongoose.Schema({
     required: true,
     unique: true
   },
-  personalCertificates: [personalCertificateSchema]
+  profile: {
+    profileImage: String,
+    aadharNumber: String,
+    mobileNumber: String,
+    collegeEmail: String,
+    class10Certificate: String,
+    class12Certificate: String,
+    diplomaCertificate: String,
+    bachelorDegree: String,
+    masterDegree: String,
+    doctorDegree: String,
+    linkedinProfile: String,
+    githubProfile: String,
+    currentSGPA: { type: Number, default: 0 },
+    overallCGPA: { type: Number, default: 0 }
+  },
+  personalCertificates: { type: [personalCertificateSchema], default: [] },
+  projects: { type: [projectSchema], default: [] },
+  semesterMarks: {
+    type: [{
+      semester: { type: Number, required: true },
+      year: { type: Number, required: true },
+      sgpa: { type: Number, required: true },
+      subjects: {
+        type: [{
+          name: { type: String, required: true },
+          marks: { type: Number, required: true },
+          grade: { type: String, required: true }
+        }],
+        default: []
+      }
+    }],
+    default: []
+  },
+  cgpa: { type: Number, default: 0 }
 }, {
   timestamps: true
 });

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
@@ -16,6 +16,28 @@ const StudentRegister = ({ onRegister }) => {
     rollNumber: ''
   });
   const [message, setMessage] = useState('');
+  const [colleges, setColleges] = useState([]);
+  const [departments, setDepartments] = useState([]);
+
+  useEffect(() => {
+    fetchColleges();
+  }, []);
+
+  const fetchColleges = async () => {
+    try {
+      const response = await api.get('/api/colleges');
+      setColleges(response.data);
+    } catch (error) {
+      console.error('Error fetching colleges:', error);
+    }
+  };
+
+  const handleCollegeChange = (e) => {
+    const collegeId = e.target.value;
+    const selectedCollege = colleges.find(c => c._id === collegeId);
+    setFormData({ ...formData, college: selectedCollege?.name || '', department: '' });
+    setDepartments(selectedCollege?.departments || []);
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -88,22 +110,28 @@ const StudentRegister = ({ onRegister }) => {
           required 
           className="w-full p-2 border rounded" 
         />
-        <input 
-          name="college" 
-          placeholder="College Name" 
-          value={formData.college} 
-          onChange={handleChange} 
+        <select 
+          onChange={handleCollegeChange}
           required 
-          className="w-full p-2 border rounded" 
-        />
-        <input 
+          className="w-full p-2 border rounded"
+        >
+          <option value="">Select College</option>
+          {colleges.map((college) => (
+            <option key={college._id} value={college._id}>{college.name}</option>
+          ))}
+        </select>
+        <select 
           name="department" 
-          placeholder="Department" 
           value={formData.department} 
           onChange={handleChange} 
           required 
-          className="w-full p-2 border rounded" 
-        />
+          className="w-full p-2 border rounded"
+        >
+          <option value="">Select Department</option>
+          {departments.map((dept) => (
+            <option key={dept._id} value={dept.name}>{dept.name}</option>
+          ))}
+        </select>
         <input 
           name="year" 
           type="number" 

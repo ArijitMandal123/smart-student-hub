@@ -1,27 +1,26 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
-const Student = require('./models/Student');
+const Admin = require('./models/Admin');
 
-const seedNewStudent = async () => {
+const seedData = async () => {
   try {
     await mongoose.connect(process.env.MONGODB_URI);
     
     const hashedPassword = await bcrypt.hash('password123', 10);
     
-    const newStudent = new Student({
-      name: 'Alice Johnson',
-      email: 'alice.johnson@example.com',
+    // Seed new admin
+    const newAdmin = new Admin({
+      name: 'Test Admin',
+      email: 'testadmin@example.com',
       password: hashedPassword,
-      college: 'Delhi College of Engineering',
-      department: 'Mechanical Engineering',
-      year: 1,
-      semester: 2,
-      rollNumber: 'ME2023001'
+      institution: 'Test Institution',
+      role: 'Super Admin'
     });
     
-    await newStudent.save();
-    console.log('New student added with ID:', newStudent.studentId);
+    await newAdmin.save();
+    console.log('New admin added with ID:', newAdmin.adminId);
+    
     process.exit(0);
   } catch (error) {
     console.error('Error:', error.message);
@@ -29,4 +28,4 @@ const seedNewStudent = async () => {
   }
 };
 
-seedNewStudent();
+seedData();

@@ -35,10 +35,16 @@ const LandingPage = () => {
               >
                 Student
               </button>
-              <button className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-md text-sm font-medium transition duration-300">
+              <button 
+                onClick={() => navigate('/teacher/login')}
+                className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-md text-sm font-medium transition duration-300"
+              >
                 Teacher
               </button>
-              <button className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-md text-sm font-medium transition duration-300">
+              <button 
+                onClick={() => navigate('/admin/login')}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-md text-sm font-medium transition duration-300"
+              >
                 Admin
               </button>
             </div>
@@ -65,10 +71,16 @@ const LandingPage = () => {
                 >
                   Student Login
                 </button>
-                <button className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg text-lg font-medium transition duration-300 shadow-lg">
+                <button 
+                  onClick={() => navigate('/teacher/login')}
+                  className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg text-lg font-medium transition duration-300 shadow-lg"
+                >
                   Teacher Login
                 </button>
-                <button className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg text-lg font-medium transition duration-300 shadow-lg">
+                <button 
+                  onClick={() => navigate('/admin/login')}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg text-lg font-medium transition duration-300 shadow-lg"
+                >
                   Admin Login
                 </button>
               </div>
