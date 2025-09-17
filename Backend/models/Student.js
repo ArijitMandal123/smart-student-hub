@@ -38,6 +38,54 @@ const personalCertificateSchema = new mongoose.Schema({
   timestamps: true
 });
 
+const academicCertificateSchema = new mongoose.Schema({
+  domain: {
+    type: String,
+    required: true,
+    enum: ['internship', 'skill', 'event', 'workshop']
+  },
+  certificateName: {
+    type: String,
+    required: true
+  },
+  image: {
+    type: String,
+    required: true
+  },
+  certificateUrl: {
+    type: String
+  },
+  date: {
+    type: Date,
+    required: true
+  },
+  issuedBy: {
+    type: String,
+    required: true
+  },
+  description: String,
+  skills: [String],
+  duration: String,
+  location: String,
+  organizationType: {
+    type: String,
+    enum: ['corporate', 'educational', 'government', 'ngo']
+  },
+  status: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending'
+  },
+  feedback: String,
+  submittedAt: {
+    type: Date,
+    default: Date.now
+  },
+  reviewedAt: Date
+}, {
+  timestamps: true
+});
+
 const projectSchema = new mongoose.Schema({
   title: {
     type: String,
@@ -116,7 +164,12 @@ const studentSchema = new mongoose.Schema({
     overallCGPA: { type: Number, default: 0 }
   },
   personalCertificates: { type: [personalCertificateSchema], default: [] },
+  academicCertificates: { type: [academicCertificateSchema], default: [] },
   projects: { type: [projectSchema], default: [] },
+  skills: {
+    type: Object,
+    default: {}
+  },
   semesterMarks: {
     type: [{
       semester: { type: Number, required: true },

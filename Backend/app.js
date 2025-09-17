@@ -10,6 +10,7 @@ const Teacher = require("./models/Teacher");
 const Admin = require("./models/Admin");
 const College = require("./models/College");
 const Group = require("./models/Group");
+const Message = require("./models/Message");
 const app = express();
 
 const storage = multer.memoryStorage();
@@ -380,9 +381,103 @@ app.get("/api/teacher/groups/:teacherId", async (req, res) => {
   }
 });
 
+app.put("/api/groups/:groupId", async (req, res) => {
+  try {
+    const { name, teacher, students } = req.body;
+    const group = await Group.findByIdAndUpdate(
+      req.params.groupId,
+      { name, teacher, students },
+      { new: true }
+    );
+    if (!group) {
+      return res.status(404).json({ error: "Group not found" });
+    }
+    res.json({ message: "Group updated successfully", group });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Academic Certificates endpoints (separate from personal certificates)
+app.post("/api/academic-certificates", upload.single("image"), async (req, res) => {
+  try {
+    console.log('Academic certificate request received:', req.body);
+    console.log('File received:', req.file ? 'Yes' : 'No');
+    
+    const skills = req.body.skills ? JSON.parse(req.body.skills) : [];
+    
+    const certificateData = {
+      domain: req.body.domain,
+      certificateName: req.body.certificateName,
+      image: req.file
+        ? `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`
+        : req.body.image,
+      certificateUrl: req.body.certificateUrl,
+      date: req.body.date,
+      issuedBy: req.body.issuedBy,
+      description: req.body.description,
+      skills: skills,
+      duration: req.body.duration,
+      location: req.body.location,
+      organizationType: req.body.organizationType,
+      status: req.body.status || 'pending',
+      submittedAt: new Date()
+    };
+
+    const student = await Student.findOne({ studentId: req.body.studentId });
+    if (!student) {
+      console.log('Student not found:', req.body.studentId);
+      return res.status(404).json({ error: "Student not found" });
+    }
+
+    // Initialize academicCertificates if it doesn't exist
+    if (!student.academicCertificates) {
+      student.academicCertificates = [];
+      student.markModified('academicCertificates');
+    }
+    
+    student.academicCertificates.push(certificateData);
+    student.markModified('academicCertificates');
+    
+
+    
+    await student.save();
+    console.log('Academic certificate saved successfully');
+
+    res.status(201).json({
+      message: "Certificate submitted for review",
+      certificate: certificateData,
+    });
+  } catch (error) {
+    console.error('Academic certificate error:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.get("/api/academic-certificates/:studentId", async (req, res) => {
+  try {
+    const student = await Student.findOne({ studentId: req.params.studentId });
+    if (!student) {
+      return res.status(404).json({ error: "Student not found" });
+    }
+    
+    // Initialize academicCertificates if it doesn't exist
+    if (!student.academicCertificates) {
+      student.academicCertificates = [];
+      student.markModified('academicCertificates');
+      await student.save();
+    }
+    
+    res.json(student.academicCertificates || []);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Personal Certificates endpoints (keeping existing functionality)
 app.post("/api/certificates", upload.single("image"), async (req, res) => {
   try {
-    console.log('Certificate request received:', req.body);
+    console.log('Personal certificate request received:', req.body);
     console.log('File received:', req.file ? 'Yes' : 'No');
     
     const certificateData = {
@@ -406,7 +501,7 @@ app.post("/api/certificates", upload.single("image"), async (req, res) => {
 
     student.personalCertificates.push(certificateData);
     await student.save();
-    console.log('Certificate saved successfully');
+    console.log('Personal certificate saved successfully');
 
     res
       .status(201)
@@ -415,7 +510,7 @@ app.post("/api/certificates", upload.single("image"), async (req, res) => {
         certificate: certificateData,
       });
   } catch (error) {
-    console.error('Certificate error:', error);
+    console.error('Personal certificate error:', error);
     res.status(400).json({ error: error.message });
   }
 });
@@ -427,6 +522,77 @@ app.get("/api/certificates/:studentId", async (req, res) => {
       return res.status(404).json({ error: "Student not found" });
     }
     res.json(student.personalCertificates || []);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Faculty review endpoints for academic certificates
+app.get("/api/teacher/academic-certificates/pending", async (req, res) => {
+  try {
+    const students = await Student.find(
+      { "academicCertificates.status": "pending" },
+      'studentId name academicCertificates'
+    );
+    
+    const pendingCertificates = [];
+    students.forEach(student => {
+      student.academicCertificates.forEach(cert => {
+        if (cert.status === 'pending') {
+          pendingCertificates.push({
+            ...cert.toObject(),
+            studentId: student.studentId,
+            studentName: student.name,
+            _id: cert._id
+          });
+        }
+      });
+    });
+    
+    res.json(pendingCertificates);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.put("/api/teacher/academic-certificates/:studentId/:certificateId/review", async (req, res) => {
+  try {
+    const { status, feedback } = req.body;
+    
+    if (!['approved', 'rejected'].includes(status)) {
+      return res.status(400).json({ error: "Status must be 'approved' or 'rejected'" });
+    }
+    
+    const student = await Student.findOne({ studentId: req.params.studentId });
+    if (!student) {
+      return res.status(404).json({ error: "Student not found" });
+    }
+    
+    const certificate = student.academicCertificates.id(req.params.certificateId);
+    if (!certificate) {
+      return res.status(404).json({ error: "Certificate not found" });
+    }
+    
+    certificate.status = status;
+    certificate.feedback = feedback;
+    certificate.reviewedAt = new Date();
+    
+    // Update skills when certificate is approved
+    if (status === 'approved' && certificate.skills && certificate.skills.length > 0) {
+      if (!student.skills) {
+        student.skills = {};
+      }
+      
+      certificate.skills.forEach(skill => {
+        student.skills[skill] = (student.skills[skill] || 0) + 1;
+      });
+      
+      student.markModified('skills');
+    }
+    
+    await student.save();
+    
+    res.json({ message: `Certificate ${status} successfully` });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -445,6 +611,22 @@ app.delete("/api/certificates/:studentId/:certificateId", async (req, res) => {
     await student.save();
     
     res.json({ message: "Certificate deleted successfully" });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.delete("/api/academic-certificates/:studentId/:certificateId", async (req, res) => {
+  try {
+    const student = await Student.findOne({ studentId: req.params.studentId });
+    if (!student) {
+      return res.status(404).json({ error: "Student not found" });
+    }
+    
+    student.academicCertificates.pull({ _id: req.params.certificateId });
+    await student.save();
+    
+    res.json({ message: "Academic certificate deleted successfully" });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -680,6 +862,345 @@ app.post("/api/students/:studentId/marks", async (req, res) => {
     if (error.name === 'ValidationError') {
       console.error('Validation errors:', error.errors);
     }
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Teacher endpoints for marks management
+app.post("/api/teacher/marks/:studentId", async (req, res) => {
+  try {
+    const { semester, year, sgpa } = req.body;
+    
+    if (!semester || !year || !sgpa) {
+      return res.status(400).json({ error: "Semester, year, and SGPA are required" });
+    }
+    
+    const student = await Student.findOne({ studentId: req.params.studentId });
+    if (!student) {
+      return res.status(404).json({ error: "Student not found" });
+    }
+    
+    const existingRecord = student.semesterMarks.find(mark => 
+      mark.semester === parseInt(semester) && mark.year === parseInt(year)
+    );
+    
+    if (existingRecord) {
+      return res.status(400).json({ error: "Marks for this semester and year already exist" });
+    }
+    
+    const marksRecord = {
+      semester: parseInt(semester),
+      year: parseInt(year),
+      sgpa: parseFloat(sgpa),
+      subjects: []
+    };
+    
+    if (!student.semesterMarks) {
+      student.semesterMarks = [];
+    }
+    
+    student.semesterMarks.push(marksRecord);
+    
+    const totalSGPA = student.semesterMarks.reduce((sum, record) => sum + record.sgpa, 0);
+    student.cgpa = parseFloat((totalSGPA / student.semesterMarks.length).toFixed(2));
+    
+    await student.save();
+    
+    res.status(201).json({ 
+      message: "Marks added successfully", 
+      cgpa: student.cgpa
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+
+
+// Teacher dashboard endpoints
+app.get("/api/teacher/students", async (req, res) => {
+  try {
+    const students = await Student.find({}, 'studentId name email college department year semester cgpa');
+    res.json(students);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.get("/api/teacher/student/:studentId/marks", async (req, res) => {
+  try {
+    const student = await Student.findOne({ studentId: req.params.studentId }, 'studentId name semesterMarks cgpa');
+    if (!student) {
+      return res.status(404).json({ error: "Student not found" });
+    }
+    res.json(student);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.put("/api/teacher/marks/:studentId", async (req, res) => {
+  try {
+    const { semester, year, sgpa } = req.body;
+    
+    if (!semester || !year || !sgpa) {
+      return res.status(400).json({ error: "Semester, year, and SGPA are required" });
+    }
+    
+    const student = await Student.findOne({ studentId: req.params.studentId });
+    if (!student) {
+      return res.status(404).json({ error: "Student not found" });
+    }
+    
+    const markIndex = student.semesterMarks.findIndex(mark => 
+      mark.semester === parseInt(semester) && mark.year === parseInt(year)
+    );
+    
+    if (markIndex === -1) {
+      return res.status(404).json({ error: "Semester record not found" });
+    }
+    
+    student.semesterMarks[markIndex].sgpa = parseFloat(sgpa);
+    
+    const totalSGPA = student.semesterMarks.reduce((sum, record) => sum + record.sgpa, 0);
+    student.cgpa = parseFloat((totalSGPA / student.semesterMarks.length).toFixed(2));
+    
+    await student.save();
+    
+    res.json({ 
+      message: "SGPA updated successfully", 
+      cgpa: student.cgpa
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Student search endpoint
+app.get("/api/search/students", async (req, res) => {
+  try {
+    const { query } = req.query;
+    console.log('Search query received:', query);
+    
+    if (!query || query.trim().length < 2) {
+      return res.status(400).json({ error: "Search query must be at least 2 characters" });
+    }
+    
+    const searchRegex = new RegExp(query.trim(), 'i');
+    console.log('Search regex:', searchRegex);
+    
+    const students = await Student.find({
+      $or: [
+        { name: searchRegex },
+        { studentId: searchRegex },
+        { rollNumber: searchRegex },
+        { email: searchRegex },
+        { college: searchRegex },
+        { department: searchRegex }
+      ]
+    }, '-password').limit(10);
+    
+    console.log('Students found:', students.length);
+    res.json(students);
+  } catch (error) {
+    console.error('Search error:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Test endpoint to check specific student ID
+app.get("/api/test-student/:studentId", async (req, res) => {
+  try {
+    const student = await Student.findOne({ studentId: req.params.studentId }, '-password');
+    if (!student) {
+      return res.status(404).json({ error: "Student not found", searchedId: req.params.studentId });
+    }
+    res.json({ message: "Student found", student });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Test endpoint to list all students
+app.get("/api/test-all-students", async (req, res) => {
+  try {
+    const students = await Student.find({}, 'studentId name email college department');
+    res.json({ count: students.length, students });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Create test student with specific ID
+app.post("/api/create-test-student", async (req, res) => {
+  try {
+    const hashedPassword = await bcrypt.hash('password123', 10);
+    
+    const testStudent = new Student({
+      name: 'Test Student',
+      email: 'test.student@example.com',
+      password: hashedPassword,
+      college: 'Test College',
+      department: 'Computer Science',
+      year: 2,
+      semester: 4,
+      rollNumber: 'TEST2023001',
+      studentId: 'RIOITIxV20p', // Set the specific ID you're looking for
+      profile: {
+        profileImage: 'https://via.placeholder.com/150/4F46E5/FFFFFF?text=TS',
+        mobileNumber: '9876543210',
+        currentSGPA: 8.5,
+        overallCGPA: 8.2
+      },
+      cgpa: 8.2
+    });
+    
+    await testStudent.save();
+    res.json({ message: 'Test student created', studentId: testStudent.studentId, name: testStudent.name });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Test endpoint to add skills (for testing purposes)
+app.post("/api/test-skills/:studentId", async (req, res) => {
+  try {
+    const student = await Student.findOne({ studentId: req.params.studentId });
+    if (!student) {
+      return res.status(404).json({ error: "Student not found" });
+    }
+    
+    if (!student.skills) {
+      student.skills = {};
+    }
+    
+    // Add test skills
+    student.skills['Java'] = 2;
+    student.skills['Python'] = 1;
+    student.skills['React'] = 1;
+    
+    student.markModified('skills');
+    await student.save();
+    
+    res.json({ message: "Test skills added", skills: student.skills });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Messaging endpoints
+app.post("/api/messages/send", async (req, res) => {
+  try {
+    const { senderId, senderName, senderType, groupId, subject, message } = req.body;
+    
+    if (!senderId || !senderName || !senderType || !groupId || !subject || !message) {
+      return res.status(400).json({ error: "All fields are required" });
+    }
+    
+    // Get group details and students
+    const group = await Group.findById(groupId);
+    if (!group) {
+      return res.status(404).json({ error: "Group not found" });
+    }
+    
+    // Get student details for recipients
+    const students = await Student.find({ studentId: { $in: group.students } }, 'studentId name');
+    
+    const recipients = students.map(student => ({
+      studentId: student.studentId,
+      studentName: student.name,
+      isRead: false
+    }));
+    
+    const newMessage = new Message({
+      senderId,
+      senderName,
+      senderType,
+      recipients,
+      subject,
+      message,
+      groupId,
+      groupName: group.name
+    });
+    
+    await newMessage.save();
+    
+    res.status(201).json({ 
+      message: "Message sent successfully", 
+      messageId: newMessage._id,
+      recipientCount: recipients.length
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.get("/api/messages/student/:studentId", async (req, res) => {
+  try {
+    const messages = await Message.find(
+      { "recipients.studentId": req.params.studentId },
+      'senderId senderName senderType subject message groupName createdAt recipients.$'
+    ).sort({ createdAt: -1 });
+    
+    // Format messages for student view
+    const formattedMessages = messages.map(msg => {
+      const recipient = msg.recipients.find(r => r.studentId === req.params.studentId);
+      return {
+        _id: msg._id,
+        senderId: msg.senderId,
+        senderName: msg.senderName,
+        senderType: msg.senderType,
+        subject: msg.subject,
+        message: msg.message,
+        groupName: msg.groupName,
+        createdAt: msg.createdAt,
+        isRead: recipient?.isRead || false,
+        readAt: recipient?.readAt
+      };
+    });
+    
+    res.json(formattedMessages);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.put("/api/messages/:messageId/read/:studentId", async (req, res) => {
+  try {
+    const message = await Message.findById(req.params.messageId);
+    if (!message) {
+      return res.status(404).json({ error: "Message not found" });
+    }
+    
+    const recipient = message.recipients.find(r => r.studentId === req.params.studentId);
+    if (!recipient) {
+      return res.status(404).json({ error: "Recipient not found" });
+    }
+    
+    recipient.isRead = true;
+    recipient.readAt = new Date();
+    
+    await message.save();
+    
+    res.json({ message: "Message marked as read" });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.get("/api/messages/unread-count/:studentId", async (req, res) => {
+  try {
+    const count = await Message.countDocuments({
+      "recipients": {
+        $elemMatch: {
+          studentId: req.params.studentId,
+          isRead: false
+        }
+      }
+    });
+    
+    res.json({ unreadCount: count });
+  } catch (error) {
     res.status(400).json({ error: error.message });
   }
 });

@@ -13,12 +13,15 @@ import PersonalAchievements from "./components/PersonalAchievements";
 import StudentProfile from "./components/StudentProfile";
 import ViewProfile from "./components/ViewProfile";
 import Projects from "./components/Projects";
+import AcademicRecords from "./components/AcademicRecords";
+import AcademicCertificatesNew from "./components/AcademicCertificatesNew";
 import TeacherLogin from "./components/TeacherLogin";
 import TeacherRegister from "./components/TeacherRegister";
 import TeacherDashboard from "./components/TeacherDashboard";
 import AdminLogin from "./components/AdminLogin";
 import AdminRegister from "./components/AdminRegister";
 import AdminDashboard from "./components/AdminDashboard";
+import StudentDetails from "./components/StudentDetails";
 import api from "./services/api";
 
 function App() {
@@ -85,6 +88,10 @@ function App() {
           element={studentData ? <Navigate to="/dashboard" /> : <LandingPage />}
         />
         <Route
+          path="/student/:studentId"
+          element={<StudentDetails />}
+        />
+        <Route
           path="/login"
           element={
             studentData ? (
@@ -149,6 +156,26 @@ function App() {
           element={
             studentData ? (
               <Projects studentData={studentData} />
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        />
+        <Route
+          path="/academic-records"
+          element={
+            studentData ? (
+              <AcademicRecords studentData={studentData} />
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        />
+        <Route
+          path="/academic-certificates"
+          element={
+            studentData ? (
+              <AcademicCertificatesNew studentData={studentData} />
             ) : (
               <Navigate to="/login" />
             )
